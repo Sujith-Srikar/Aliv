@@ -1,4 +1,7 @@
-﻿allowBuilds:
-  esbuild: true
+﻿# Flat node_modules (no symlinks) so @astrojs/vercel / @vercel/nft can copy
+# dependencies on Windows without SeCreateSymbolicLinkPrivilege (Dev Mode/admin).
+nodeLinker: hoisted
 
+allowBuilds:
+  esbuild: true
   sharp: true
