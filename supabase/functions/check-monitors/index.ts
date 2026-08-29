@@ -6,7 +6,7 @@ import type { CheckResult, MonitorRow } from "../_shared/monitor-check.ts";
 
 const BATCH_LIMIT = 40;
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   const env = Deno.env.toObject();
 
   if (!isAuthorized(req, env)) {
