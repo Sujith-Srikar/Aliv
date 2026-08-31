@@ -3,7 +3,7 @@ import EmptyState from '../../components/EmptyState.astro';
 import MonitorCard from '../../components/MonitorCard.astro';
 import MonitorForm from '../../components/MonitorForm.astro';
 import Layout from '../../layouts/Layout.astro';
-import { listMonitorsForUser, type Monitor } from '../../lib/monitors';
+import { listMonitorsForUser, type Monitor } from '../../../supabase/db/monitors';
 
 export const prerender = false;
 

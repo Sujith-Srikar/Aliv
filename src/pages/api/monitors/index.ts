@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { created, handleError, ok, readJson } from '../../../lib/http';
-import { createMonitor, listMonitorsForUser } from '../../../lib/monitors';
-import { CreateMonitorSchema, ListMonitorsQuerySchema } from '../../../shared/schemas';
+import { createMonitor, listMonitorsForUser } from '../../../../supabase/db/monitors';
+import { CreateMonitorSchema, ListMonitorsQuerySchema } from '../../../../shared/schemas';
 
 export const POST: APIRoute = async ({ request }) => {
   try {

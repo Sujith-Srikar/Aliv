@@ -1,6 +1,6 @@
-import type { Database } from "./database.types.ts";
+import type { Tables } from "../../types.ts";
 
-export type MonitorRow = Database["public"]["Tables"]["monitors"]["Row"];
+export type MonitorRow = Tables<"monitors">;
 
 export type CheckError =
   | "TIMEOUT"

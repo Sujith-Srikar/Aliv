@@ -111,18 +111,19 @@ should not be with errors."* Both Deno and Astro projects must type-check clean 
   (project `ahqicxezwyenwksbigzh`), `WORKER_SECRET=kgNXBv4b4xkaFCWX1UjPwXKmyoEnaIAoHCIhBYUJLQI=`.
 - Migrations: `20260829080010_create_monitors_tables.sql`, `20260829092206_enable_pg_cron_check_monitors.sql`.
 - Edge Function: `supabase/functions/check-monitors/index.ts` + `check-monitors.test.ts` (6 tests pass) +
-  `supabase/functions/_shared/{database.types.ts,env.ts,monitor-check.ts}`.
+  `supabase/functions/_shared/{env.ts,monitor-check.ts}`.
 - `astro.config.mjs`: `output:'server'`, `adapter: vercel({})` (import from `@astrojs/vercel`).
 - `tsconfig.json`: extends astro strict; excludes `dist`, `supabase/functions`.
 - `package.json`: `check: astro check`; devDeps `@astrojs/check@0.9.10`, `typescript@~5.9.3`.
-- `src/lib/database.types.ts`: generated DB types (`Tables<'monitors'>`).
+- `supabase/types.ts`: generated DB types (e.g. `Tables<'monitors'>`). Single source of truth; regenerate with
+  `supabase gen types typescript --local > supabase/types.ts`.
 - `src/lib/http.ts`: `HttpError`, `ok/created/noContent/fail`, `readJson` (16KB), `handleError`
-  (`ZodError` → 400 VALIDATION_ERROR, Postgres `23505` → 409, else `logger.error` + 500). Uses `src/shared/logger`.
-- `src/shared/`: `types.ts`, `env.ts` (zod-validated `SUPABASE_URL/ANON/SERVICE_ROLE`), `schemas.ts`
+  (`ZodError` → 400 VALIDATION_ERROR, Postgres `23505` → 409, else `logger.error` + 500). Uses `shared/logger`.
+- `shared/` (repo root): `types.ts`, `env.ts` (zod-validated `SUPABASE_URL/ANON/SERVICE_ROLE`), `schemas.ts`
   (create/update/list schemas + `ALLOWED_INTERVALS`/`ALLOWED_TIMEOUTS`), `logger.ts`.
-- `src/lib/validation.ts` — **DELETED**, fully replaced by `src/shared/schemas.ts`.
-- `src/lib/db.ts`: server-only service-role Supabase client from `src/shared/env`.
-- `src/lib/monitors.ts`: `findOrCreateUser` (race-safe), `createMonitor`, `getMonitor`, `listMonitorsForUser`,
+- `src/lib/validation.ts` — **DELETED**, fully replaced by `shared/schemas.ts`.
+- `supabase/db/client.ts`: server-only service-role Supabase client from `shared/env`.
+- `supabase/db/monitors.ts`: `findOrCreateUser` (race-safe), `createMonitor`, `getMonitor`, `listMonitorsForUser`,
   `updateMonitor` (recomputes `next_check_at` on interval change / resume), `deleteMonitor`.
 - `src/pages/api/monitors/index.ts` (POST/GET), `src/pages/api/monitors/[id].ts` (PATCH/DELETE).
 - Frontend: `src/layouts/Layout.astro`, `src/styles/global.css`, `src/pages/index.astro`,

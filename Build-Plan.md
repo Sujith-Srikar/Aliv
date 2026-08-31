@@ -40,7 +40,7 @@ supabase db push
 ```
 3. Generate types:
 ```bash
-supabase gen types typescript --local > src/lib/database.types.ts
+supabase gen types typescript --local > supabase/types.ts
 ```
 **Done when:** tables + constraints + indexes exist, test rows insert successfully.
 

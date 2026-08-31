@@ -1,5 +1,5 @@
 import { ZodError } from 'zod';
-import { logger } from '../shared/logger';
+import { logger } from '../../shared/logger';
 
 export class HttpError extends Error {
   constructor(

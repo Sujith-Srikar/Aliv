@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../_shared/database.types.ts";
+import type { Database } from "../../types.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { check } from "../_shared/monitor-check.ts";
 import type { CheckResult, MonitorRow } from "../_shared/monitor-check.ts";
@@ -48,9 +48,11 @@ Deno.serve(async (req: Request) => {
 });
 
 function isAuthorized(req: Request, env: Record<string, string | undefined>): boolean {
-  const expected = requireEnv(env, "WORKER_SECRET");
+  const expected = env.WORKER_SECRET;
+
+  if(!expected) return false;
+
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  // constant-time-ish compare to avoid trivial timing leaks
   if (!token || token.length !== expected.length) return false;
   let diff = 0;
   for (let i = 0; i < token.length; i++) {

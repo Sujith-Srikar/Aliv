@@ -12,7 +12,8 @@
       "!!**/node_modules",
       "!!**/.astro",
       "!!**/.vercel",
-      "!!**/supabase/functions"
+      "!!**/supabase/functions",
+      "!!**/supabase/types.ts"
     ]
   },
   "formatter": {
