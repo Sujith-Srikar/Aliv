@@ -1,0 +1,184 @@
+---
+import EmptyState from '../../components/EmptyState.astro';
+import MonitorCard from '../../components/MonitorCard.astro';
+import MonitorForm from '../../components/MonitorForm.astro';
+import Layout from '../../layouts/Layout.astro';
+import { listMonitorsForUser, type Monitor } from '../../lib/monitors';
+
+export const prerender = false;
+
+const username = (Astro.params.username ?? '').trim().toLowerCase();
+const valid = /^[a-z0-9_-]{3,30}$/.test(username);
+const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
+---
+
+<Layout title={`${username || 'Dashboard'} — Uptime Monitor`}>
+	<main class="container">
+		<header class="page-head">
+			<a class="muted" href="/" style="font-size: 0.85rem">← change user</a>
+			<h1 class="username">@{username}</h1>
+		</header>
+
+		{!valid ? (
+			<p class="muted">
+				That doesn't look like a valid username. <a href="/">Go back</a> and re-enter it.
+			</p>
+		) : (
+			<>
+				<div class="toolbar">
+					<p class="muted" style="font-size: 0.9rem">{monitors.length} monitor{monitors.length === 1 ? '' : 's'}</p>
+					<button class="btn btn-primary" type="button" data-action="create">Add monitor</button>
+				</div>
+
+				{monitors.length === 0 ? (
+					<EmptyState>
+						<button class="btn btn-primary" type="button" data-action="create">Add your first monitor</button>
+					</EmptyState>
+				) : (
+					<ul class="monitor-list">
+						{monitors.map((monitor) => (
+							<MonitorCard monitor={monitor} />
+						))}
+					</ul>
+				)}
+			</>
+		)}
+
+		<MonitorForm username={username} />
+	</main>
+</Layout>
+
+<script>
+	const dialog = document.querySelector<HTMLDialogElement>('#monitor-dialog');
+	const form = document.querySelector<HTMLFormElement>('#monitor-form');
+	const errorEl = document.querySelector<HTMLParagraphElement>('#monitor-form-error');
+	const idEl = document.querySelector<HTMLInputElement>('#monitor-id');
+	const usernameEl = document.querySelector<HTMLInputElement>('#monitor-username');
+	const nameEl = document.querySelector<HTMLInputElement>('#monitor-name');
+	const urlEl = document.querySelector<HTMLInputElement>('#monitor-url');
+	const intervalEl = document.querySelector<HTMLSelectElement>('#monitor-interval');
+	const timeoutEl = document.querySelector<HTMLSelectElement>('#monitor-timeout');
+
+	function showError(message: string): void {
+		if (!errorEl) return;
+		errorEl.textContent = message;
+		errorEl.hidden = false;
+	}
+
+	function clearError(): void {
+		if (!errorEl) return;
+		errorEl.textContent = '';
+		errorEl.hidden = true;
+	}
+
+	function resetForm(): void {
+		form?.reset();
+		if (idEl) idEl.value = '';
+		clearError();
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-action="create"]').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			resetForm();
+			if (intervalEl) intervalEl.value = '10';
+			if (timeoutEl) timeoutEl.value = '10';
+			dialog?.showModal();
+		});
+	});
+
+	document.querySelectorAll<HTMLButtonElement>('[data-action="edit"]').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			resetForm();
+			const data = btn.dataset;
+			if (idEl) idEl.value = String(data.monitorId ?? '');
+			if (nameEl) nameEl.value = data.name ?? '';
+			if (urlEl) urlEl.value = data.url ?? '';
+			if (intervalEl) intervalEl.value = String(data.intervalMinutes ?? '');
+			if (timeoutEl) timeoutEl.value = String(data.timeoutSeconds ?? '');
+			dialog?.showModal();
+		});
+	});
+
+	type ApiError = { error?: { message?: string } };
+
+	function errorMessage(body: unknown, fallback: string): string {
+		if (body != null && typeof body === 'object' && 'error' in body) {
+			return (body as ApiError).error?.message ?? fallback;
+		}
+		return fallback;
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-action="cancel-dialog"]').forEach((btn) => {
+		btn.addEventListener('click', () => dialog?.close());
+	});
+
+	form?.addEventListener('submit', async (event) => {
+		event.preventDefault();
+		clearError();
+
+		const id = idEl?.value ?? '';
+		const payload: Record<string, string | number> = {
+			name: nameEl?.value ?? '',
+			url: urlEl?.value ?? '',
+			intervalMinutes: Number(intervalEl?.value ?? 10),
+			timeoutSeconds: Number(timeoutEl?.value ?? 10),
+		};
+		if (!id) {
+			payload.username = usernameEl?.value ?? '';
+		}
+
+		const response = await fetch(id ? `/api/monitors/${id}` : '/api/monitors', {
+			method: id ? 'PATCH' : 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload),
+		});
+
+		if (response.ok) {
+			location.reload();
+			return;
+		}
+
+		const body: unknown = await response.json().catch(() => null);
+		showError(errorMessage(body, 'Something went wrong, please try again.'));
+	});
+
+	document.querySelectorAll<HTMLButtonElement>('[data-action="toggle-pause"]').forEach((btn) => {
+		btn.addEventListener('click', async () => {
+			const id = btn.dataset.monitorId;
+			if (!id) return;
+			const paused = btn.dataset.paused === 'true';
+			btn.disabled = true;
+
+			const response = await fetch(`/api/monitors/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ isPaused: !paused }),
+			});
+
+			if (response.ok) {
+				location.reload();
+				return;
+			}
+			btn.disabled = false;
+			alert('Failed to update monitor.');
+		});
+	});
+
+	document.querySelectorAll<HTMLButtonElement>('[data-action="delete"]').forEach((btn) => {
+		btn.addEventListener('click', async () => {
+			const id = btn.dataset.monitorId;
+			if (!id) return;
+			if (!confirm('Delete this monitor? This cannot be undone.')) return;
+			btn.disabled = true;
+
+			const response = await fetch(`/api/monitors/${id}`, { method: 'DELETE' });
+
+			if (response.ok) {
+				location.reload();
+				return;
+			}
+			btn.disabled = false;
+			alert('Failed to delete monitor.');
+		});
+	});
+</script>

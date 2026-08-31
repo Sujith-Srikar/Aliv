@@ -1,11 +1,43 @@
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Uptime Monitor</title>
-  </head>
-  <body>
-    <h1>Uptime Monitor</h1>
-    <p>Enter your username to see your monitors.</p>
-  </body>
-</html>
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Uptime Monitor">
+	<main class="container hero">
+		<h1>Uptime Monitor</h1>
+		<p class="muted">Passwordless uptime monitoring. Enter your username to see your monitors.</p>
+
+		<form id="lookup-form" class="lookup">
+			<input
+				id="username-input"
+				type="text"
+				name="username"
+				placeholder="your username"
+				autocomplete="username"
+				minlength="3"
+				maxlength="30"
+				pattern="^[A-Za-z0-9_-]{3,30}$"
+				required
+				autofocus
+			/>
+			<button class="btn btn-primary" type="submit">Open dashboard</button>
+		</form>
+		<p class="muted" style="font-size: 0.8rem; margin-top: 0.75rem">
+			3–30 characters: letters, numbers, <code>_</code> or <code>-</code>
+		</p>
+	</main>
+</Layout>
+
+<script>
+	const form = document.querySelector<HTMLFormElement>('#lookup-form');
+	const input = document.querySelector<HTMLInputElement>('#username-input');
+
+	form?.addEventListener('submit', (event) => {
+		event.preventDefault();
+		const username = (input?.value ?? '').trim().toLowerCase();
+		if (!username) {
+			return;
+		}
+		location.href = `/dashboard/${encodeURIComponent(username)}`;
+	});
+</script>

@@ -1,0 +1,53 @@
+---
+import { ALLOWED_INTERVALS, ALLOWED_TIMEOUTS } from '../shared/schemas';
+
+interface Props {
+  username: string;
+}
+
+const { username } = Astro.props;
+---
+
+<dialog id="monitor-dialog" aria-labelledby="monitor-dialog-title">
+	<form id="monitor-form" class="dialog-body">
+		<h2 id="monitor-dialog-title">Monitor</h2>
+
+		<input type="hidden" id="monitor-id" name="monitorId" value="" />
+		<input type="hidden" id="monitor-username" name="username" value={username} />
+
+		<div class="form-field">
+			<label for="monitor-name">Name</label>
+			<input id="monitor-name" name="name" type="text" maxlength="80" required autocomplete="off" />
+		</div>
+
+		<div class="form-field">
+			<label for="monitor-url">URL</label>
+			<input id="monitor-url" name="url" type="url" placeholder="https://example.com" required autocomplete="off" />
+		</div>
+
+		<div class="form-field">
+			<label for="monitor-interval">Check every</label>
+			<select id="monitor-interval" name="intervalMinutes">
+				{ALLOWED_INTERVALS.map((minutes) => (
+					<option value={minutes}>{minutes} minutes</option>
+				))}
+			</select>
+		</div>
+
+		<div class="form-field">
+			<label for="monitor-timeout">Timeout</label>
+			<select id="monitor-timeout" name="timeoutSeconds">
+				{ALLOWED_TIMEOUTS.map((seconds) => (
+					<option value={seconds}>{seconds} second{seconds === 1 ? '' : 's'}</option>
+				))}
+			</select>
+		</div>
+
+		<p id="monitor-form-error" class="form-error" hidden></p>
+
+		<div class="form-actions">
+			<button class="btn" type="button" data-action="cancel-dialog">Cancel</button>
+			<button class="btn btn-primary" type="submit">Save</button>
+		</div>
+	</form>
+</dialog>

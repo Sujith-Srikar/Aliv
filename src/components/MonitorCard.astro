@@ -1,0 +1,68 @@
+---
+import type { Monitor } from '../lib/monitors';
+import StatusBadge from './StatusBadge.astro';
+
+interface Props {
+  monitor: Monitor;
+}
+
+const { monitor } = Astro.props;
+
+const checked = monitor.last_checked_at != null;
+const responseTime = monitor.response_time_ms != null ? `${monitor.response_time_ms} ms` : '—';
+const lastChecked =
+  monitor.last_checked_at != null ? new Date(monitor.last_checked_at).toLocaleString() : 'never';
+---
+
+<li class="card monitor" data-monitor-id={monitor.id}>
+	<div class="monitor-main">
+		<div class="monitor-head">
+			<h2 class="monitor-name">{monitor.name}</h2>
+			<StatusBadge status={monitor.status} checked={checked} />
+			{monitor.is_paused && <span class="tag">paused</span>}
+		</div>
+		<a class="monitor-url muted" href={monitor.url} target="_blank" rel="noopener noreferrer">{monitor.url}</a>
+
+		<dl class="monitor-meta">
+			<div>
+				<dt>Check every</dt>
+				<dd>{monitor.interval_minutes} min</dd>
+			</div>
+			<div>
+				<dt>Timeout</dt>
+				<dd>{monitor.timeout_seconds} s</dd>
+			</div>
+			<div>
+				<dt>Response</dt>
+				<dd>{responseTime}</dd>
+			</div>
+			<div>
+				<dt>Last checked</dt>
+				<dd>{lastChecked}</dd>
+			</div>
+		</dl>
+
+		{monitor.last_error && <p class="monitor-error">{monitor.last_error}</p>}
+	</div>
+
+	<div class="monitor-actions">
+		<button class="btn" type="button" data-action="toggle-pause" data-monitor-id={monitor.id} data-paused={String(monitor.is_paused)}>
+			{monitor.is_paused ? 'Resume' : 'Pause'}
+		</button>
+		<button
+			class="btn"
+			type="button"
+			data-action="edit"
+			data-monitor-id={monitor.id}
+			data-name={monitor.name}
+			data-url={monitor.url}
+			data-interval-minutes={monitor.interval_minutes}
+			data-timeout-seconds={monitor.timeout_seconds}
+		>
+			Edit
+		</button>
+		<button class="btn btn-danger" type="button" data-action="delete" data-monitor-id={monitor.id}>
+			Delete
+		</button>
+	</div>
+</li>

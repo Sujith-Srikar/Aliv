@@ -1,0 +1,19 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'No monitors yet',
+  description = 'Add your first monitor to start tracking uptime.',
+} = Astro.props;
+---
+
+<div class="empty-state">
+	<p class="empty-title">{title}</p>
+	<p class="muted">{description}</p>
+	<div class="empty-actions">
+		<slot />
+	</div>
+</div>

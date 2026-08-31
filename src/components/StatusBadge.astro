@@ -1,0 +1,14 @@
+---
+interface Props {
+  status: string;
+  checked: boolean;
+}
+
+const { status, checked } = Astro.props;
+const state = !checked ? 'pending' : status;
+const label = !checked ? 'PENDING' : status.toUpperCase();
+---
+
+<span class={`badge badge-${state.toLowerCase()}`} aria-label={`Status: ${label}`}>
+	{label}
+</span>
