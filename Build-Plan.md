@@ -44,6 +44,8 @@ supabase gen types typescript --local > supabase/types.ts
 ```
 **Done when:** tables + constraints + indexes exist, test rows insert successfully.
 
+> **Next phase / pending:** Schema allows interval `14` (in `shared/schemas.ts`) but the DB CHECK constraint still only allows `(10,15,20,30,45,60)` — **add `14` to the `interval_minutes` constraint** in `supabase/migrations/20260829080010_create_monitors_tables.sql` and re-apply.
+
 ---
 
 ## Phase 2 — Edge Function (`check-monitors`)
@@ -114,6 +116,8 @@ Wire create / edit / pause-resume / delete to the API routes above.
 ```bash
 pnpm dev
 ```
+
+> **Status:** UI is **partially fixed** — landing page done; delete now uses a confirm dialog; toasts gained a success kind. Not fully verified end-to-end.
 
 ---
 

@@ -35,7 +35,7 @@ Indexes: `monitors(next_check_at) WHERE is_paused=false` (due query), `monitors(
 | Username | 3–30 chars, `a-z A-Z 0-9 _ -`, lowercase-normalized, unique |
 | Monitor name | 1–80 chars |
 | URL | `http/https` only; block localhost, loopback, RFC1918, link-local, cloud metadata IPs (SSRF check) |
-| Interval | 10–60 min, fixed options: 10/15/20/30/45/60, default 10 |
+| Interval | 10–60 min, fixed options: 10/14/15/20/30/45/60 (14 = 5-min marks ×2; pending: add `14` to DB CHECK constraint), default 10 |
 | Timeout | 1–60 sec, fixed options: 1/5/10/15/20/30/45/60, default 10 |
 
 ## Scheduling Model
