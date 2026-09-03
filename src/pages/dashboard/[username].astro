@@ -1,9 +1,10 @@
 ---
+import { listMonitorsForUser, type Monitor } from '../../../supabase/db/monitors';
+import DeleteDialog from '../../components/DeleteDialog.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import MonitorCard from '../../components/MonitorCard.astro';
 import MonitorForm from '../../components/MonitorForm.astro';
 import Layout from '../../layouts/Layout.astro';
-import { listMonitorsForUser, type Monitor } from '../../../supabase/db/monitors';
 
 export const prerender = false;
 
@@ -15,7 +16,7 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 <Layout title={`${username || 'Dashboard'} — Uptime Monitor`}>
 	<main class="container">
 		<header class="page-head">
-			<a class="muted" href="/" style="font-size: 0.85rem">← change user</a>
+			<a class="back-link" href="/">← change user</a>
 			<h1 class="username">@{username}</h1>
 		</header>
 
@@ -26,18 +27,18 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 		) : (
 			<>
 				<div class="toolbar">
-					<p class="muted" style="font-size: 0.9rem">{monitors.length} monitor{monitors.length === 1 ? '' : 's'}</p>
-					<button class="btn btn-primary" type="button" data-action="create">Add monitor</button>
+					<p class="muted mono-comment">{monitors.length} monitor{monitors.length === 1 ? '' : 's'} · active</p>
+					<button class="btn btn-primary" type="button" data-action="create">+ add monitor</button>
 				</div>
 
 				{monitors.length === 0 ? (
 					<EmptyState>
-						<button class="btn btn-primary" type="button" data-action="create">Add your first monitor</button>
+						<button class="btn btn-primary" type="button" data-action="create">+ add your first monitor</button>
 					</EmptyState>
 				) : (
 					<ul class="monitor-list">
-						{monitors.map((monitor) => (
-							<MonitorCard monitor={monitor} />
+						{monitors.map((monitor, index) => (
+							<MonitorCard monitor={monitor} delay={index * 45} />
 						))}
 					</ul>
 				)}
@@ -45,6 +46,7 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 		)}
 
 		<MonitorForm username={username} />
+		<DeleteDialog />
 	</main>
 </Layout>
 
@@ -58,6 +60,13 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 	const urlEl = document.querySelector<HTMLInputElement>('#monitor-url');
 	const intervalEl = document.querySelector<HTMLSelectElement>('#monitor-interval');
 	const timeoutEl = document.querySelector<HTMLSelectElement>('#monitor-timeout');
+	const submitBtn = document.querySelector<HTMLButtonElement>('#monitor-submit');
+
+	declare global {
+		interface Window {
+			showToast: (message: string, kind?: 'info' | 'success' | 'error') => void;
+		}
+	}
 
 	function showError(message: string): void {
 		if (!errorEl) return;
@@ -75,6 +84,13 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 		form?.reset();
 		if (idEl) idEl.value = '';
 		clearError();
+	}
+
+	function setLoading(btn: HTMLButtonElement | null, loading: boolean): void {
+		if (!btn) return;
+		btn.disabled = loading;
+		btn.querySelector<HTMLSpanElement>('.spinner')?.toggleAttribute('hidden', !loading);
+		btn.querySelector<HTMLSpanElement>('.btn-label')?.toggleAttribute('hidden', loading);
 	}
 
 	document.querySelectorAll<HTMLButtonElement>('[data-action="create"]').forEach((btn) => {
@@ -127,6 +143,7 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 			payload.username = usernameEl?.value ?? '';
 		}
 
+		setLoading(submitBtn, true);
 		const response = await fetch(id ? `/api/monitors/${id}` : '/api/monitors', {
 			method: id ? 'PATCH' : 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -134,10 +151,12 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 		});
 
 		if (response.ok) {
+			window.showToast(id ? 'Monitor updated' : 'Monitor created', 'success');
 			location.reload();
 			return;
 		}
 
+		setLoading(submitBtn, false);
 		const body: unknown = await response.json().catch(() => null);
 		showError(errorMessage(body, 'Something went wrong, please try again.'));
 	});
@@ -147,7 +166,7 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 			const id = btn.dataset.monitorId;
 			if (!id) return;
 			const paused = btn.dataset.paused === 'true';
-			btn.disabled = true;
+			setLoading(btn, true);
 
 			const response = await fetch(`/api/monitors/${id}`, {
 				method: 'PATCH',
@@ -156,29 +175,50 @@ const monitors: Monitor[] = valid ? await listMonitorsForUser(username) : [];
 			});
 
 			if (response.ok) {
+				window.showToast(paused ? 'Monitor resumed' : 'Monitor paused', 'success');
 				location.reload();
 				return;
 			}
-			btn.disabled = false;
-			alert('Failed to update monitor.');
+			setLoading(btn, false);
+			window.showToast('Failed to update monitor.', 'error');
 		});
 	});
 
+	const deleteDialog = document.querySelector<HTMLDialogElement>('#delete-dialog');
+	const deleteForm = document.querySelector<HTMLFormElement>('#delete-form');
+	const deleteNameEl = document.querySelector<HTMLSpanElement>('#delete-dialog .delete-name');
+	const deleteConfirmBtn = document.querySelector<HTMLButtonElement>('#delete-confirm');
+	let deleteId = '';
+
 	document.querySelectorAll<HTMLButtonElement>('[data-action="delete"]').forEach((btn) => {
-		btn.addEventListener('click', async () => {
+		btn.addEventListener('click', () => {
 			const id = btn.dataset.monitorId;
 			if (!id) return;
-			if (!confirm('Delete this monitor? This cannot be undone.')) return;
-			btn.disabled = true;
-
-			const response = await fetch(`/api/monitors/${id}`, { method: 'DELETE' });
-
-			if (response.ok) {
-				location.reload();
-				return;
-			}
-			btn.disabled = false;
-			alert('Failed to delete monitor.');
+			deleteId = id;
+			if (deleteNameEl) deleteNameEl.textContent = btn.dataset.name ?? '';
+			if (deleteForm) deleteForm.reset();
+			deleteDialog?.showModal();
 		});
+	});
+
+	document.querySelectorAll<HTMLButtonElement>('[data-action="cancel-delete"]').forEach((btn) => {
+		btn.addEventListener('click', () => deleteDialog?.close());
+	});
+
+	deleteForm?.addEventListener('submit', async (event) => {
+		event.preventDefault();
+		if (!deleteId) return;
+
+		setLoading(deleteConfirmBtn, true);
+		const response = await fetch(`/api/monitors/${deleteId}`, { method: 'DELETE' });
+
+		if (response.ok) {
+			window.showToast('Monitor deleted', 'success');
+			deleteDialog?.close();
+			location.reload();
+			return;
+		}
+		setLoading(deleteConfirmBtn, false);
+		window.showToast('Failed to delete monitor.', 'error');
 	});
 </script>

@@ -13,9 +13,63 @@ const { title } = Astro.props;
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#1e1e1e" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
 		<title>{title}</title>
 	</head>
 	<body>
+		<div class="frame" aria-hidden="true">
+			<span class="frame-tick tl">+</span>
+			<span class="frame-tick tr">+</span>
+			<span class="frame-tick bl">+</span>
+			<span class="frame-tick br">+</span>
+		</div>
+		<div class="rail rail-left" aria-hidden="true"></div>
+		<div class="rail rail-right" aria-hidden="true"></div>
 		<slot />
+		<div id="toast-root" class="toast-root" aria-live="polite"></div>
 	</body>
 </html>
+
+<script>
+	type ToastKind = 'info' | 'success' | 'error';
+
+	function showToast(message: string, kind: ToastKind = 'info'): void {
+		const root = document.querySelector<HTMLDivElement>('#toast-root');
+		if (!root) return;
+
+		const toast = document.createElement('div');
+		toast.className = 'toast';
+		toast.dataset.kind = kind;
+		toast.innerHTML = `
+			<span class="toast-dot"></span>
+			<span class="toast-msg"></span>
+			<button class="toast-close" type="button" aria-label="Dismiss">×</button>
+		`;
+		toast.querySelector('.toast-msg')!.textContent = message;
+		root.appendChild(toast);
+
+		const remove = () => {
+			toast.dataset.leaving = 'true';
+			toast.addEventListener('animationend', () => toast.remove(), { once: true });
+		};
+		const timer = setTimeout(remove, 3200);
+		toast.addEventListener('mouseenter', () => clearTimeout(timer), { once: true });
+		toast.querySelector('.toast-close')?.addEventListener('click', () => {
+			clearTimeout(timer);
+			remove();
+		});
+	}
+
+	declare global {
+		interface Window {
+			showToast: typeof showToast;
+		}
+	}
+	window.showToast = showToast;
+</script>

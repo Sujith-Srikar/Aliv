@@ -2,42 +2,109 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Uptime Monitor">
-	<main class="container hero">
-		<h1>Uptime Monitor</h1>
-		<p class="muted">Passwordless uptime monitoring. Enter your username to see your monitors.</p>
+<Layout title="uptime_monitor — know before your users do">
+	<main class="container">
+		<!-- HERO -->
+		<header class="hero">
+			<span class="brand"><span class="brand-dot"></span>uptime_monitor<span class="cursor"></span></span>
+			<h1>know before<br />your users do.</h1>
+			<p class="muted hero-sub">a silent sentinel for your endpoints.<br />no signup. no password. just a username.</p>
 
-		<form id="lookup-form" class="lookup">
-			<input
-				id="username-input"
-				type="text"
-				name="username"
-				placeholder="your username"
-				autocomplete="username"
-				minlength="3"
-				maxlength="30"
-				pattern="^[A-Za-z0-9_-]{3,30}$"
-				required
-				autofocus
-			/>
-			<button class="btn btn-primary" type="submit">Open dashboard</button>
-		</form>
-		<p class="muted" style="font-size: 0.8rem; margin-top: 0.75rem">
-			3–30 characters: letters, numbers, <code>_</code> or <code>-</code>
-		</p>
+			<form id="lookup-form" class="lookup">
+				<label class="sr-only" for="username-input">Username</label>
+				<input
+					id="username-input"
+					type="text"
+					name="username"
+					placeholder="your username"
+					autocomplete="username"
+					minlength="3"
+					maxlength="30"
+					pattern="^[A-Za-z0-9_-]{3,30}$"
+					required
+					autofocus
+				/>
+				<button class="btn btn-primary" type="submit">enter →</button>
+			</form>
+			<p class="muted mono-comment hero-note">
+				3–30 chars · letters, numbers, <code>_</code> or <code>-</code>
+			</p>
+		</header>
+
+		<!-- FEATURES -->
+		<section class="section" aria-labelledby="features-title">
+			<h2 class="section-title" id="features-title">what it watches</h2>
+			<ul class="feature-grid">
+				<li class="feature">
+					<span class="feature-key mono-comment">interval</span>
+					<p class="feature-name">check cadence</p>
+					<p class="feature-text">per-monitor intervals from 10 to 60 minutes. your endpoints, your rhythm.</p>
+				</li>
+				<li class="feature">
+					<span class="feature-key mono-comment">timeout</span>
+					<p class="feature-name">response budget</p>
+					<p class="feature-text">a per-monitor timeout from 1 to 60 seconds. slow is flagged, dead is caught.</p>
+				</li>
+				<li class="feature">
+					<span class="feature-key mono-comment">latency</span>
+					<p class="feature-name">response tracking</p>
+					<p class="feature-text">millisecond response times recorded on every check, surfaced right on the card.</p>
+				</li>
+				<li class="feature">
+					<span class="feature-key mono-comment">status</span>
+					<p class="feature-name">up / down / pending</p>
+					<p class="feature-text">a single glance tells you the health of every endpoint, with errors kept verbatim.</p>
+				</li>
+				<li class="feature">
+					<span class="feature-key mono-comment">zero-auth</span>
+					<p class="feature-name">no accounts</p>
+					<p class="feature-text">no signup, no password, no email. a username is the whole ceremony.</p>
+				</li>
+				<li class="feature">
+					<span class="feature-key mono-comment">pause</span>
+					<p class="feature-name">pause / resume</p>
+					<p class="feature-text">mute a monitor during maintenance without deleting a thing. one click either way.</p>
+				</li>
+			</ul>
+		</section>
+
+		<!-- HOW IT WORKS -->
+		<section class="section" aria-labelledby="how-title">
+			<h2 class="section-title" id="how-title">how it works</h2>
+			<ol class="steps">
+				<li class="step">
+					<span class="step-num mono-comment">01</span>
+					<p class="feature-name">pick a username</p>
+					<p class="feature-text">type any username you like. it becomes your namespace — nothing to configure.</p>
+				</li>
+				<li class="step">
+					<span class="step-num mono-comment">02</span>
+					<p class="feature-name">add your endpoints</p>
+					<p class="feature-text">give each monitor a name, a URL, a cadence, and a timeout. save it once, and it starts watching.</p>
+				</li>
+				<li class="step">
+					<span class="step-num mono-comment">03</span>
+					<p class="feature-name">watch the status</p>
+					<p class="feature-text">the dashboard becomes your at-a-glance health check. resume the rhythm, or pause when it suits.</p>
+				</li>
+			</ol>
+		</section>
+
 	</main>
 </Layout>
 
 <script>
-	const form = document.querySelector<HTMLFormElement>('#lookup-form');
-	const input = document.querySelector<HTMLInputElement>('#username-input');
+	const handleLookup: (form: HTMLFormElement) => void = (form) => {
+		const input = form.querySelector<HTMLInputElement>('input[name="username"]');
+		form.addEventListener('submit', (event) => {
+			event.preventDefault();
+			const username = (input?.value ?? '').trim().toLowerCase();
+			if (!username) {
+				return;
+			}
+			location.href = `/dashboard/${encodeURIComponent(username)}`;
+		});
+	};
 
-	form?.addEventListener('submit', (event) => {
-		event.preventDefault();
-		const username = (input?.value ?? '').trim().toLowerCase();
-		if (!username) {
-			return;
-		}
-		location.href = `/dashboard/${encodeURIComponent(username)}`;
-	});
+	document.querySelectorAll<HTMLFormElement>('.lookup').forEach(handleLookup);
 </script>

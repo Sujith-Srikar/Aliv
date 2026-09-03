@@ -5,12 +5,16 @@ interface Props {
 }
 
 const {
-  title = 'No monitors yet',
-  description = 'Add your first monitor to start tracking uptime.',
+	title = 'no monitors yet',
+	description = 'add your first monitor to start tracking uptime.',
 } = Astro.props;
 ---
 
 <div class="empty-state">
+	<svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+		<circle cx="12" cy="12" r="9" />
+		<path d="M8.5 12.5l2.2 2.2L15.5 10" />
+	</svg>
 	<p class="empty-title">{title}</p>
 	<p class="muted">{description}</p>
 	<div class="empty-actions">

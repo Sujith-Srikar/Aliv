@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../types.ts";
-import { requireEnv } from "../_shared/env.ts";
 import { check } from "../_shared/monitor-check.ts";
 import type { CheckResult, MonitorRow } from "../_shared/monitor-check.ts";
 
@@ -16,11 +15,18 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const client = createClient<Database>(
-    requireEnv(env, "SUPABASE_URL"),
-    requireEnv(env, "SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false } },
-  );
+  const url = env.SUPABASE_URL;
+  const serviceRole = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRole) {
+    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const client = createClient<Database>(url, serviceRole, {
+    auth: { persistSession: false },
+  });
 
   const summary = { checked: 0, up: 0, down: 0, errors: 0 };
 

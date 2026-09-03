@@ -9,6 +9,7 @@
 * Mark deliberate V1 shortcuts with `ponytail:` comments.
 * Don't duplicate logic, types, or validation rules.
 * Keep modules focused on one responsibility.
+* Remember to use the shared folder as much as possible logging and other things
 
 ## TypeScript
 

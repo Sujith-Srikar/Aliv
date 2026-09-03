@@ -4,9 +4,10 @@ import StatusBadge from './StatusBadge.astro';
 
 interface Props {
   monitor: Monitor;
+  delay?: number;
 }
 
-const { monitor } = Astro.props;
+const { monitor, delay = 0 } = Astro.props;
 
 const checked = monitor.last_checked_at != null;
 const responseTime = monitor.response_time_ms != null ? `${monitor.response_time_ms} ms` : '—';
@@ -14,7 +15,7 @@ const lastChecked =
   monitor.last_checked_at != null ? new Date(monitor.last_checked_at).toLocaleString() : 'never';
 ---
 
-<li class="card monitor" data-monitor-id={monitor.id}>
+<li class="card monitor" data-monitor-id={monitor.id} style={`animation-delay: ${delay}ms`}>
 	<div class="monitor-main">
 		<div class="monitor-head">
 			<h2 class="monitor-name">{monitor.name}</h2>
@@ -47,7 +48,8 @@ const lastChecked =
 
 	<div class="monitor-actions">
 		<button class="btn" type="button" data-action="toggle-pause" data-monitor-id={monitor.id} data-paused={String(monitor.is_paused)}>
-			{monitor.is_paused ? 'Resume' : 'Pause'}
+			<span class="spinner" hidden></span>
+			<span class="btn-label">{monitor.is_paused ? 'Resume' : 'Pause'}</span>
 		</button>
 		<button
 			class="btn"
@@ -61,8 +63,9 @@ const lastChecked =
 		>
 			Edit
 		</button>
-		<button class="btn btn-danger" type="button" data-action="delete" data-monitor-id={monitor.id}>
-			Delete
+		<button class="btn btn-danger" type="button" data-action="delete" data-monitor-id={monitor.id} data-name={monitor.name}>
+			<span class="spinner" hidden></span>
+			<span class="btn-label">Delete</span>
 		</button>
 	</div>
 </li>

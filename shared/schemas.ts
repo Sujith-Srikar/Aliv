@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const ALLOWED_INTERVALS = [10, 15, 20, 30, 45, 60] as const;
+export const ALLOWED_INTERVALS = [10, 14, 15, 20, 30, 45, 60] as const;
 export const ALLOWED_TIMEOUTS = [1, 5, 10, 15, 20, 30, 45, 60] as const;
 
 const USERNAME_RE = /^[a-z0-9_-]{3,30}$/;
@@ -28,7 +28,7 @@ export const CreateMonitorSchema = z.object({
   url,
   intervalMinutes: allowedNumber(
     ALLOWED_INTERVALS,
-    'intervalMinutes must be one of 10, 15, 20, 30, 45, 60',
+    'intervalMinutes must be one of 10, 14, 15, 20, 30, 45, 60',
   ),
   timeoutSeconds: allowedNumber(
     ALLOWED_TIMEOUTS,
@@ -41,7 +41,7 @@ export const UpdateMonitorSchema = z.object({
   url: url.optional(),
   intervalMinutes: allowedNumber(
     ALLOWED_INTERVALS,
-    'intervalMinutes must be one of 10, 15, 20, 30, 45, 60',
+    'intervalMinutes must be one of 10, 14, 15, 20, 30, 45, 60',
   ).optional(),
   timeoutSeconds: allowedNumber(
     ALLOWED_TIMEOUTS,
