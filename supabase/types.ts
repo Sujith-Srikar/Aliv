@@ -127,6 +127,21 @@ export type Database = {
         };
         Returns: Json;
       };
+      read_monitor_checks: {
+        Args: {
+          p_qty: number;
+        };
+        Returns: {
+          msg_id: string;
+          message: Json;
+        }[];
+      };
+      delete_monitor_check: {
+        Args: {
+          p_msg_id: number;
+        };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

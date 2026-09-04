@@ -3,7 +3,10 @@ import type { Database } from "../../types.ts";
 import { check } from "../_shared/monitor-check.ts";
 import type { CheckResult, MonitorRow } from "../_shared/monitor-check.ts";
 
-const BATCH_LIMIT = 40;
+const READ_QTY = 10;
+const MAX_ROUNDS = 3;
+
+type QueueMessage = { msg_id: string | number; message: unknown };
 
 Deno.serve(async (req: Request) => {
   const env = Deno.env.toObject();
@@ -30,23 +33,24 @@ Deno.serve(async (req: Request) => {
 
   const summary = { checked: 0, up: 0, down: 0, errors: 0 };
 
-  const due = await dueMonitors(client);
-  if (due.length === 0) {
-    return json({ summary });
-  }
+  // Drain the queue in concurrent batches. Bounded rounds keep the invocation
+  // inside the wall-clock budget; messages left unacked stay under their pgmq
+  // visibility timeout and are retried automatically.
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const batch = await readBatch(client);
 
-  for (const monitor of due) {
-    const claimed = await claim(client, monitor.id);
-    if (!claimed) continue; // another run won this one
+    if (batch.length === 0) break;
 
-    const result = await check(claimed);
-    await persist(client, claimed, result);
+    const settled = await Promise.allSettled(
+      batch.map((msg) => processOne(client, msg, summary)),
+    );
 
-    summary.checked += 1;
-    if (result.status === "UP") summary.up += 1;
-    else {
-      summary.down += 1;
-      summary.errors += 1;
+    for (let i = 0; i < batch.length; i++) {
+      // Ack only fully-successful messages. Failures are left unacked so pgmq
+      // re-delivers them after the visibility timeout (its own retry).
+      if (settled[i]?.status === "fulfilled") {
+        await ack(client, batch[i].msg_id);
+      }
     }
   }
 
@@ -74,20 +78,47 @@ function json(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
-async function dueMonitors(
+async function readBatch(
   client: ReturnType<typeof createClient<Database>>,
-): Promise<MonitorRow[]> {
-  const now = new Date().toISOString();
-  const { data, error } = await client
-    .from("monitors")
-    .select("*")
-    .eq("is_paused", false)
-    .lte("next_check_at", now)
-    .or(`check_started_at.is.null,check_lease_until.lt.${now}`)
-    .limit(BATCH_LIMIT);
+): Promise<QueueMessage[]> {
+  const { data, error } = await client.rpc("read_monitor_checks", { p_qty: READ_QTY });
 
-  if (error) throw new Error(`Failed to load due monitors: ${error.message}`);
-  return data ?? [];
+  if (error) throw new Error(`Failed to read queue: ${error.message}`);
+  return ((data ?? []) as QueueMessage[]).filter((m) => m && m.msg_id != null);
+}
+
+async function ack(
+  client: ReturnType<typeof createClient<Database>>,
+  msgId: string | number,
+): Promise<void> {
+  const { error } = await client.rpc("delete_monitor_check", { p_msg_id: msgId });
+  if (error) {
+    // A failed ack is non-fatal: the message just reappears after vt and is
+    // either acked or rejected as a no-op on the next pass.
+    console.error(`Ack failed for msg ${msgId}: ${error.message}`);
+  }
+}
+
+async function processOne(
+  client: ReturnType<typeof createClient<Database>>,
+  msg: QueueMessage,
+  summary: { checked: number; up: number; down: number; errors: number },
+): Promise<void> {
+  const monitorId = (msg.message as { monitor_id?: string } | null)?.monitor_id;
+  if (!monitorId) return; // malformed message -> ack it
+
+  const claimed = await claim(client, monitorId);
+  if (!claimed) return; // already claimed/paused/deleted -> ack as a no-op
+
+  const result = await check(claimed);
+  await persist(client, claimed, result);
+
+  summary.checked += 1;
+  if (result.status === "UP") summary.up += 1;
+  else {
+    summary.down += 1;
+    summary.errors += 1;
+  }
 }
 
 async function claim(
