@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
   }
 
   for (const monitor of due) {
-    const claimed = await claim(client, monitor);
+    const claimed = await claim(client, monitor.id);
     if (!claimed) continue; // another run won this one
 
     const result = await check(claimed);
@@ -92,23 +92,13 @@ async function dueMonitors(
 
 async function claim(
   client: ReturnType<typeof createClient<Database>>,
-  monitor: MonitorRow,
+  id: string,
 ): Promise<MonitorRow | null> {
-  const now = new Date();
-  const lease = new Date(now.getTime() + (monitor.timeout_seconds + 30) * 1000);
+  const { data, error } = await client.rpc("claim_monitor", { p_id: id });
 
-  const { data, error } = await client
-    .from("monitors")
-    .update({ check_started_at: now.toISOString(), check_lease_until: lease.toISOString() })
-    .eq("id", monitor.id)
-    .eq("is_paused", false)
-    .lte("next_check_at", now.toISOString())
-    .or(`check_started_at.is.null,check_lease_until.lt.${now.toISOString()}`)
-    .select()
-    .single();
-
-  if (error) throw new Error(`Claim failed for ${monitor.id}: ${error.message}`);
-  return data ?? null;
+  if (error) throw new Error(`Claim failed for ${id}: ${error.message}`);
+  const rows = (data ?? []) as MonitorRow[];
+  return rows.length > 0 ? rows[0] : null;
 }
 
 async function persist(
