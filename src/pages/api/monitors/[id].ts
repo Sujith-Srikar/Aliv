@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { fail, handleError, noContent, ok, readJson } from '../../../lib/http';
-import { deleteMonitor, updateMonitor } from '../../../../supabase/db/monitors';
 import { UpdateMonitorSchema } from '../../../../shared/schemas';
+import { deleteMonitor, updateMonitor } from '../../../../supabase/db/monitors';
+import { fail, handleError, noContent, ok, readJson } from '../../../lib/http';
 
 export const PATCH: APIRoute = async ({ params, request }) => {
   try {
