@@ -1,3 +1,4 @@
+import { MAX_MONITORS_PER_USER, MonitorLimitError } from '../../shared/monitor-limit';
 import type { CreateMonitorInput, UpdateMonitorInput } from '../../shared/schemas';
 import { assertSafeUrl } from '../../shared/ssrf';
 import type { Tables, TablesInsert, TablesUpdate } from '../types';
@@ -31,6 +32,15 @@ async function findOrCreateUser(username: string): Promise<string> {
 export async function createMonitor(input: CreateMonitorInput): Promise<Monitor> {
   await assertSafeUrl(input.url);
   const userId = await findOrCreateUser(input.username);
+
+  const { count } = await db
+    .from('monitors')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  if ((count ?? 0) >= MAX_MONITORS_PER_USER) {
+    throw new MonitorLimitError(MAX_MONITORS_PER_USER);
+  }
+
   const row: TablesInsert<'monitors'> = {
     user_id: userId,
     name: input.name,

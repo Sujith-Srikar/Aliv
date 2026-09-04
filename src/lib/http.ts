@@ -1,5 +1,6 @@
 import { ZodError } from 'zod';
 import { logger } from '../../shared/logger';
+import { MonitorLimitError } from '../../shared/monitor-limit';
 import { SsrfError } from '../../shared/ssrf';
 
 export class HttpError extends Error {
@@ -72,6 +73,9 @@ export function handleError(e: unknown): Response {
   }
   if (e instanceof SsrfError) {
     return fail('SSRF_BLOCKED', e.message, 400);
+  }
+  if (e instanceof MonitorLimitError) {
+    return fail('LIMIT_EXCEEDED', e.message, 429);
   }
   if (isPostgrestError(e) && e.code === '23505') {
     return fail('CONFLICT', 'a resource with these details already exists', 409);
