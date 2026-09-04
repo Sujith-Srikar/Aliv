@@ -1,5 +1,6 @@
 import { ZodError } from 'zod';
 import { logger } from '../../shared/logger';
+import { SsrfError } from '../../shared/ssrf';
 
 export class HttpError extends Error {
   constructor(
@@ -68,6 +69,9 @@ export function handleError(e: unknown): Response {
   }
   if (e instanceof ZodError) {
     return fail('VALIDATION_ERROR', e.issues[0]?.message ?? 'invalid input', 400);
+  }
+  if (e instanceof SsrfError) {
+    return fail('SSRF_BLOCKED', e.message, 400);
   }
   if (isPostgrestError(e) && e.code === '23505') {
     return fail('CONFLICT', 'a resource with these details already exists', 409);

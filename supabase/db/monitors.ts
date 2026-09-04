@@ -1,4 +1,5 @@
 import type { CreateMonitorInput, UpdateMonitorInput } from '../../shared/schemas';
+import { assertSafeUrl } from '../../shared/ssrf';
 import type { Tables, TablesInsert, TablesUpdate } from '../types';
 import { db } from './client';
 
@@ -28,6 +29,7 @@ async function findOrCreateUser(username: string): Promise<string> {
 }
 
 export async function createMonitor(input: CreateMonitorInput): Promise<Monitor> {
+  await assertSafeUrl(input.url);
   const userId = await findOrCreateUser(input.username);
   const row: TablesInsert<'monitors'> = {
     user_id: userId,
@@ -70,7 +72,10 @@ export async function updateMonitor(id: string, input: UpdateMonitorInput): Prom
   const patch: TablesUpdate<'monitors'> = {};
 
   if (input.name !== undefined) patch.name = input.name;
-  if (input.url !== undefined) patch.url = input.url;
+  if (input.url !== undefined) {
+    await assertSafeUrl(input.url);
+    patch.url = input.url;
+  }
   if (input.intervalMinutes !== undefined) patch.interval_minutes = input.intervalMinutes;
   if (input.timeoutSeconds !== undefined) patch.timeout_seconds = input.timeoutSeconds;
   if (input.isPaused !== undefined) patch.is_paused = input.isPaused;

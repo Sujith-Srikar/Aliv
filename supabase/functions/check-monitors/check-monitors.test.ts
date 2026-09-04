@@ -1,5 +1,8 @@
 import { check } from "../_shared/monitor-check.ts";
 import type { MonitorRow } from "../_shared/monitor-check.ts";
+import { isPrivateIp } from "../_shared/ssrf.ts";
+
+Deno.env.set("ALLOW_PRIVATE_MONITOR_URLS", "1");
 
 function monitor(overrides: Partial<MonitorRow> = {}): MonitorRow {
   return {
@@ -80,5 +83,42 @@ Deno.test("classifies connection refused as DOWN CONNECTION_ERROR", async () => 
   const result = await check(monitor({ url: "http://127.0.0.1:59999" }));
   if (result.status !== "DOWN" || result.error !== "CONNECTION_ERROR") {
     throw new Error(`expected DOWN/CONNECTION_ERROR, got ${result.status}/${result.error}`);
+  }
+});
+
+Deno.test("isPrivateIp classifies blocked and public addresses", () => {
+  const blocked = [
+    "127.0.0.1",
+    "10.0.0.5",
+    "172.16.0.1",
+    "192.168.1.1",
+    "169.254.169.254",
+    "100.64.0.1",
+    "0.0.0.0",
+    "255.255.255.255",
+    "::1",
+    "::ffff:127.0.0.1",
+    "fc00::",
+    "fdff::1",
+    "fe80::1",
+  ];
+  const publicAddrs = ["8.8.8.8", "1.1.1.1", "172.32.0.1", "11.0.0.0", "::ffff:8.8.8.8", "2001:4860:4860::8888"];
+  for (const ip of blocked) {
+    if (!isPrivateIp(ip)) throw new Error(`expected ${ip} to be private`);
+  }
+  for (const ip of publicAddrs) {
+    if (isPrivateIp(ip)) throw new Error(`expected ${ip} to be public`);
+  }
+});
+
+Deno.test("rejects a monitor URL that resolves to a private address", async () => {
+  Deno.env.delete("ALLOW_PRIVATE_MONITOR_URLS");
+  try {
+    const result = await check(monitor({ url: "http://127.0.0.1:59999" }));
+    if (result.status !== "DOWN" || result.error !== "SSRF_BLOCKED") {
+      throw new Error(`expected DOWN/SSRF_BLOCKED, got ${result.status}/${result.error}`);
+    }
+  } finally {
+    Deno.env.set("ALLOW_PRIVATE_MONITOR_URLS", "1");
   }
 });
